@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hisam AI - Intelligent Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --fg-primary: #f0f4f8;
+            --fg-secondary: #94a3b8;
+            --fg-muted: #64748b;
+            --accent: #00d4aa;
+            --accent-glow: rgba(0, 212, 170, 0.3);
+            --border: rgba(148, 163, 184, 0.15);
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--fg-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Animated Background */
+        .bg-animated {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-primary) 0%, #0d1525 100%);
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+
+        /* Floating Orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent);
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: #3b82f6;
+            bottom: -50px;
+            right: -50px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 50;
+                height: 100vh;
+                width: 280px;
+            }
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Chat Container */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 24px;
+        }
+
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-area::-webkit-scrollbar-thumb {
+            background: var(--fg-muted);
+            border-radius: 3px;
+        }
+
+        /* Message Bubbles */
+        .message {
+            max-width: 85%;
+            margin-bottom: 20px;
+            animation: messageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes messageIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            margin-left: auto;
+        }
+
+        .message-bubble {
+            padding: 14px 18px;
+            border-radius: 18px;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+            color: #000;
+            border-bottom-right-radius: 6px;
+            font-weight: 500;
+        }
+
+        .message-ai .message-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            border-bottom-left-radius: 6px;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 12px 18px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px 24px;
+            background: linear-gradient(to top, var(--bg-primary) 60%, transparent);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 8px 8px 8px 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--fg-primary);
+            font-size: 15px;
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+            line-height: 1.5;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .input-wrapper textarea::placeholder {
+            color: var(--fg-muted);
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .send-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-btn svg {
+            width: 20px;
+            height: 20px;
+            color: #000;
+        }
+
+        /* Sidebar Items */
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--fg-secondary);
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--fg-primary);
+        }
+
+        .sidebar-item.active {
+            background: rgba(0, 212, 170, 0.1);
+            color: var(--accent);
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        /* Header */
+        .header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 15, 26, 0.8);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #000;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--fg-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent-glow); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 8px transparent; }
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--accent-glow);
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            color: var(--accent);
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .feature-desc {
+            font-size: 13px;
+            color: var(--fg-muted);
+            line-height: 1.5;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 48px 24px;
+            min-height: 400px;
+        }
+
+        .welcome-title {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--fg-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            color: var(--fg-secondary);
+            font-size: 17px;
+            max-width: 500px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        /* Mobile Menu Button */
+        .menu-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--fg-primary);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+            }
+            
+            .desktop-sidebar {
+                display: none;
+            }
+        }
+
+        /* Overlay for mobile */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Code Block Styling */
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-top: 10px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+
+        /* Error State */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus States */
+        *:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        button:focus-visible, 
+        textarea:focus-visible,
+        .sidebar-item:focus-visible,
+        .feature-card:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* History Item */
+        .history-item {
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            color: var(--fg-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--fg-primary);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background: var(--fg-muted);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            left: 23px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animated"></div>
+    <div class="grid-overlay"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Mobile Overlay -->
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Main Layout -->
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar w-72 flex-shrink-0 flex flex-col desktop-sidebar" id="sidebar">
+            <div class="p-4">
+                <button class="new-chat-btn" onclick="startNewChat()" aria-label="Chat baru">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Chat Baru
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto px-3">
+                <p class="text-xs uppercase tracking-wider text-[var(--fg-muted)] mb-2 px-3">Riwayat</p>
+                <div id="historyList">
+                    <!-- History items will be inserted here -->
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-[var(--border)]">
+                <div class="sidebar-item" onclick="toggleSettings()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Pengaturan
+                </div>
+                
+                <div id="settingsPanel" class="hidden settings-panel">
+                    <div class="setting-row">
+                        <span class="text-sm">Suara Notifikasi</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')" role="switch" tabindex="0" aria-label="Toggle suara notifikasi"></div>
+                    </div>
+                    <div class="setting-row">
+                        <span class="text-sm">Mode Gelap</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')" role="switch" tabindex="0" aria-label="Toggle mode gelap"></div>
+                    </div>
+                    <div class="setting-row">
+                        <span class="text-sm">Simpan Riwayat</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')" role="switch" tabindex="0" aria-label="Toggle simpan riwayat"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0">
+            <!-- Header -->
+            <header class="header">
+                <div class="flex items-center gap-4">
+                    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="logo">
+                        <div class="logo-icon">H</div>
+                        <div>
+                            <h1 class="font-display text-lg font-semibold leading-tight">Hisam AI</h1>
+                            <p class="text-xs text-[var(--fg-muted)]">Intelligent Assistant v2.0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <div class="chat-container">
+                <div class="messages-area" id="messagesArea">
+                    <!-- Welcome Screen (shown when no messages) -->
+                    <div class="welcome-screen" id="welcomeScreen">
+                        <div style="margin-bottom: 24px;">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#00d4aa"/>
+                                        <stop offset="100%" stop-color="#3b82f6"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <h2 class="welcome-title font-display">Selamat Datang di Hisam AI</h2>
+                        <p class="welcome-subtitle">Asisten cerdas berbasis AI yang siap membantu Anda menjawab pertanyaan, menulis kode, menganalisis data, dan banyak lagi.</p>
+                        
+                        <div class="feature-grid w-full max-w-3xl">
+                            <div class="feature-card" onclick="usePrompt('Tolong jelaskan konsep machine learning dengan sederhana')" tabindex="0" role="button">
+                                <div class="feature-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="feature-title">Pelajari Konsep</h3>
+                                <p class="feature-desc">Jelaskan topik kompleks dengan bahasa sederhana</p>
+                            </div>
+                            
+                            <div class="feature-card" onclick="usePrompt('Buatkan contoh kode Python untuk mengurutkan array')" tabindex="0" role="button">
+                                <div class="feature-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <polyline points="16 18 22 12 16 6"></polyline>
+                                        <polyline points="8 6 2 12 8 18"></polyline>
+                                    </svg>
+                                </div>
+                                <h3 class="feature-title">Tulis Kode</h3>
+                                <p class="feature-desc">Generate dan debug code dalam berbagai bahasa</p>
+                            </div>
+                            
+                            <div class="feature-card" onclick="usePrompt('Bantuan saya menyusun email profesional untuk klien')" tabindex="0" role="button">
+                                <div class="feature-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="feature-title">Tulis Konten</h3>
+                                <p class="feature-desc">Buat artikel, email, dan dokumen profesional</p>
+                            </div>
+                            
+                            <div class="feature-card" onclick="usePrompt('Analisis tren pasar teknologi tahun 2024')" tabindex="0" role="button">
+                                <div class="feature-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                                    </svg>
+                                </div>
+                                <h3 class="feature-title">Analisis Data</h3>
+                                <p class="feature-desc">Dapatkan insight dari data dan statistik</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Container -->
+                    <div id="messagesContainer" class="hidden">
+                        <!-- Messages will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="input-wrapper max-w-4xl mx-auto">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Ketik pesan Anda..." 
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                            oninput="autoResize(this)"
+                            aria-label="Input pesan"
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="Kirim pesan">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-center text-xs text-[var(--fg-muted)] mt-3">Hisam AI dapat membuat kesalahan. Periksa informasi penting.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            apiKey: '7266a86eaf81474fb8fa8cd41df77040.X69Ft6uPQ29STOiy',
+            apiUrl: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+            model: 'ep-20241226154107-lmzqv'
+        };
+
+        // State Management
+        let state = {
+            messages: [],
+            isLoading: false,
+            chatHistory: []
+        };
+
+        // DOM Elements - initialized after DOM is ready
+        let elements = {};
+
+        // Initialize DOM elements
+        function initElements() {
+            elements = {
+                messageInput: document.getElementById('messageInput'),
+                sendBtn: document.getElementById('sendBtn'),
+                messagesArea: document.getElementById('messagesArea'),
+                messagesContainer: document.getElementById('messagesContainer'),
+                welcomeScreen: document.getElementById('welcomeScreen'),
+                sidebar: document.getElementById('sidebar'),
+                overlay: document.getElementById('overlay'),
+                historyList: document.getElementById('historyList')
+            };
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            initElements();
+            loadFromStorage();
+            renderHistory();
+            
+            // Focus input on load
+            if (elements.messageInput) {
+                elements.messageInput.focus();
+            }
+        });
+
+        // Storage Functions
+        function saveToStorage() {
+            try {
+                localStorage.setItem('hisam_messages', JSON.stringify(state.messages));
+                localStorage.setItem('hisam_history', JSON.stringify(state.chatHistory));
+            } catch (e) {
+                console.warn('Storage save failed:', e);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const savedMessages = localStorage.getItem('hisam_messages');
+                const savedHistory = localStorage.getItem('hisam_history');
+                
+                if (savedMessages) {
+                    state.messages = JSON.parse(savedMessages);
+                    if (state.messages.length > 0) {
+                        hideWelcome();
+                        renderMessages();
+                    }
+                }
+                
+                if (savedHistory) {
+                    state.chatHistory = JSON.parse(savedHistory);
+                }
+            } catch (e) {
+                console.warn('Storage load failed:', e);
+            }
+        }
+
+        // UI Functions
+        function toggleSidebar() {
+            if (!elements.sidebar || !elements.overlay) return;
+            elements.sidebar.classList.toggle('collapsed');
+            elements.overlay.classList.toggle('active');
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            if (panel) {
+                panel.classList.toggle('hidden');
+            }
+        }
+
+        function hideWelcome() {
+            if (elements.welcomeScreen) {
+                elements.welcomeScreen.classList.add('hidden');
+            }
+            if (elements.messagesContainer) {
+                elements.messagesContainer.classList.remove('hidden');
+            }
+        }
+
+        function showWelcome() {
+            if (elements.welcomeScreen) {
+                elements.welcomeScreen.classList.remove('hidden');
+            }
+            if (elements.messagesContainer) {
+                elements.messagesContainer.classList.add('hidden');
+            }
+        }
+
+        function startNewChat() {
+            if (state.messages.length > 0) {
+                const firstUserMessage = state.messages.find(m => m.role === 'user');
+                if (firstUserMessage) {
+                    state.chatHistory.unshift({
+                        id: Date.now(),
+                        title: firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? '...' : ''),
+                        timestamp: new Date().toISOString()
+                    });
+                    if (state.chatHistory.length > 10) {
+                        state.chatHistory = state.chatHistory.slice(0, 10);
+                    }
+                    renderHistory();
+                }
+            }
+            
+            state.messages = [];
+            saveToStorage();
+            showWelcome();
+            if (elements.messagesContainer) {
+                elements.messagesContainer.innerHTML = '';
+            }
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function usePrompt(text) {
+            if (elements.messageInput) {
+                elements.messageInput.value = text;
+                sendMessage();
+            }
+        }
+
+        // Render Functions
+        function renderMessages() {
+            if (!elements.messagesContainer) return;
+            
+            elements.messagesContainer.innerHTML = '';
+            state.messages.forEach((msg, index) => {
+                appendMessage(msg.role, msg.content, false, index * 50);
+            });
+            scrollToBottom();
+        }
+
+        function appendMessage(role, content, animate = true, delay = 0) {
+            if (!elements.messagesContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${role}`;
+            messageDiv.style.animationDelay = animate ? `${delay}ms` : '0ms';
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = content;
+            
+            messageDiv.appendChild(bubbleDiv);
+            elements.messagesContainer.appendChild(messageDiv);
+            
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            if (!elements.messagesContainer) return null;
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message message-ai';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-bubble typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            elements.messagesContainer.appendChild(typingDiv);
+            scrollToBottom();
+            return typingDiv;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function showError(message) {
+            if (!elements.messagesContainer) return;
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <strong>Error:</strong> ${message}
+            `;
+            elements.messagesContainer.appendChild(errorDiv);
+            scrollToBottom();
+        }
+
+        function renderHistory() {
+            if (!elements.historyList) return;
+            
+            if (state.chatHistory.length === 0) {
+                elements.historyList.innerHTML = `
+                    <p class="text-xs text-[var(--fg-muted)] px-3 py-4 text-center">Belum ada riwayat chat</p>
+                `;
+                return;
+            }
+            
+            elements.historyList.innerHTML = state.chatHistory.map(item => `
+                <div class="history-item" onclick="loadChat('${item.id}')">${item.title}</div>
+            `).join('');
+        }
+
+        function scrollToBottom() {
+            if (elements.messagesArea) {
+                setTimeout(() => {
+                    elements.messagesArea.scrollTop = elements.messagesArea.scrollHeight;
+                }, 50);
+            }
+        }
+
+        // Input Handling
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // API Communication
+        async function sendMessage() {
+            if (!elements.messageInput || state.isLoading) return;
+            
+            const content = elements.messageInput.value.trim();
+            if (!content) return;
+
+            // Hide welcome and add user message
+            hideWelcome();
+            appendMessage('user', content);
+            
+            // Add to state
+            state.messages.push({ role: 'user', content });
+            
+            // Clear input
+            elements.messageInput.value = '';
+            elements.messageInput.style.height = 'auto';
+            
+            // Set loading state
+            state.isLoading = true;
+            updateSendButton(true);
+            
+            // Show typing indicator
+            const typingEl = showTypingIndicator();
+
+            try {
+                const response = await fetch(CONFIG.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${CONFIG.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: CONFIG.model,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `Kamu adalah Hisam AI, asisten cerdas yang ramah dan profesional. Kamu bisa membantu menjawab pertanyaan, menulis kode, menganalisis data, dan tugas lainnya. Jawablah dalam Bahasa Indonesia kecuali jika pengguna menggunakan bahasa lain. Gunakan format markdown jika perlu.`
+                            },
+                            ...state.messages.map(m => ({ role: m.role, content: m.content }))
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 2048
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiResponse = data.choices?.[0]?.message?.content || 'Maaf, saya tidak dapat merespons saat ini.';
+                
+                // Remove typing indicator
+                removeTypingIndicator();
+                
+                // Add AI response
+                appendMessage('ai', aiResponse);
+                state.messages.push({ role: 'assistant', content: aiResponse });
+                
+                // Save to storage
+                saveToStorage();
+                
+            } catch (error) {
+                console.error('API Error:', error);
+                removeTypingIndicator();
+                showError(error.message || 'Terjadi kesalahan saat menghubungi server. Silakan coba lagi.');
+            } finally {
+                state.isLoading = false;
+                updateSendButton(false);
+            }
+        }
+
+        function updateSendButton(isLoading) {
+            if (!elements.sendBtn) return;
+            
+            if (isLoading) {
+                elements.sendBtn.disabled = true;
+                elements.sendBtn.innerHTML = '<div class="spinner"></div>';
+            } else {
+                elements.sendBtn.disabled = false;
+                elements.sendBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                `;
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K for new chat
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                startNewChat();
+            }
+            // Escape to close sidebar on mobile
+            if (e.key === 'Escape' && window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && !sidebar.classList.contains('collapsed')) {
+                    toggleSidebar();
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                const overlay = document.getElementById('overlay');
+                if (overlay) {
+                    overlay.classList.remove('active');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
